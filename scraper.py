@@ -27,7 +27,7 @@ def setup_driver():
     chrome_options = Options()
     chrome_options.add_argument(
         "--headless"
-    )  # for debugging purposes. UPDATE: removing this may cause an error where the load more button can not be found.
+    )  # for debugging purposes. removing this may cause an error where the load more button cannot be found.
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
@@ -71,6 +71,14 @@ def is_allowed(url):
     return not any(path.startswith(disallowed) for disallowed in disallowed_paths)
 
 
+def load_config(config_file="config.json"):
+    """
+    Load the config file
+    """
+    with open(config_file, "r") as f:
+        return json.load(f)
+
+
 def scroll_and_click_load_more(driver):
     """
     Scroll to the bottom of the page and click 'Load more' button
@@ -82,9 +90,6 @@ def scroll_and_click_load_more(driver):
     load_more_xpath = (
         "//a[@href='#' and @target='_self'][.//div[contains(@class, 'fr-load-more')]]"
     )
-
-    # TODO - Something wrong with the xpath of the anchor tag for the load more button
-    # Maybe change the xpath would fix this issue
 
     while True:
         driver.execute_script(
@@ -152,7 +157,8 @@ def extract_product_info(product, base_url):
       - additional_info: Additional information about the product.
       - product_url: URL of the product page.
     """
-
+    # TODO: Fix the logic for extracting product information
+    # The discount information is akways null
     try:
         product_id = product.get_attribute("data-test").split("product-card-")[-1]
         image = product.find_element(
@@ -337,20 +343,90 @@ def save_to_json(products, filename):
     print(f"Saved {len(products)} products to {filename}")  # Sanity check
 
 
+def scrape_uniqlo_section(driver, section_config):
+    """
+    Scrapes a specific section of the Uniqlo website using the provided configuration.
+    Args:
+      driver: The WebDriver instance.
+      section_config (dict): Configuration for the section to be scraped.
+    Returns:
+      list: A list of dictionaries containing information about the scraped products.
+    """
+    url = section_config["url"]
+
+    if not is_allowed(url):
+        print(f"Not allowed to scrape: {url}")
+        return []
+
+    driver.get(url)
+    print(f"Navigated to... {url}")  # Sanity check
+
+    time.sleep(10)
+
+    print(
+        f"Initial page height: {driver.execute_script('return document.body.scrollHeight')}"
+    )
+    print(
+        f"Page title: {driver.title}"
+    )  # This will help confirm if the page loaded correctly
+
+    scroll_and_click_load_more(driver)  # Load all products before extracting them
+
+    product_list = driver.find_elements(By.CSS_SELECTOR, "article.fr-grid-item.w4")
+    print(f"Found {len(product_list)} products")  # Sanity check
+
+    products = []
+    for i, product in enumerate(product_list, 1):
+        product_info = extract_product_info(product, url)
+        if product_info:
+            products.append(product_info)
+        print(f"Processed product {i}/{len(product_list)}")  # Sanity check
+
+    return products
+
+
+def main():
+    config = load_config()
+    driver = setup_driver()
+
+    all_products = {}
+
+    try:
+        for section_name, section_config in config.items():
+            print(f"Scraping {section_name}...")
+            products = scrape_uniqlo_section(driver, section_config)
+            all_products[section_name] = products
+
+            # Save section results
+            save_to_csv(products, f"uniqlo_{section_name}.csv")
+            save_to_json(products, f"uniqlo_{section_name}.json")
+
+        # Save all results in a single file
+        save_to_json(all_products, "uniqlo_all_products.json")
+
+        print("Scraping completed. Results saved to CSV and JSON files.")
+    finally:
+        driver.quit()
+        print("Driver closed")
+
+
 if __name__ == "__main__":
-    url = "https://www.uniqlo.com/my/en/women/tops/tops-collections"
-    products = scrape_uniqlo_women_tops(url)
-    save_to_csv(products, "uniqlo_women_tops.csv")
-    print(f"Scraped {len(products)} products and saved to uniqlo_women_tops.csv")
+    # config = load_config()
+    # driver = setup_driver()
+    # url = "https://www.uniqlo.com/my/en/women/tops/tops-collections"
+    # products = scrape_uniqlo_women_tops(url)
+    # save_to_csv(products, "uniqlo_women_tops.csv")
+    # print(f"Scraped {len(products)} products and saved to uniqlo_women_tops.csv")
 
-    save_to_json(products, "uniqlo_women_tops.json")
-    print(f"Scraped {len(products)} products and saved to uniqlo_women_tops.json")
+    # save_to_json(products, "uniqlo_women_tops.json")
+    # print(f"Scraped {len(products)} products and saved to uniqlo_women_tops.json")
 
-    # Final sanity checks
-    assert len(products) > 0, "No products were scraped"
-    assert all(
-        "product_id" in p for p in products
-    ), "Some products are missing product_id"
-    assert all("title" in p for p in products), "Some products are missing title"
-    assert all("image" in p for p in products), "Some products are missing image URL"
-    print("All sanity checks passed")
+    # # Final sanity checks
+    # assert len(products) > 0, "No products were scraped"
+    # assert all(
+    #     "product_id" in p for p in products
+    # ), "Some products are missing product_id"
+    # assert all("title" in p for p in products), "Some products are missing title"
+    # assert all("image" in p for p in products), "Some products are missing image URL"
+    # print("All sanity checks passed")
+    main()

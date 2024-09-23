@@ -1,0 +1,12 @@
+{
+  "women_tops": {
+    "url": "https://www.uniqlo.com/my/en/women/tops/tops-collections",
+    "product_selector": "article.fr-grid-item.w4",
+    "load_more_xpath": "//a[@href='#' and @target='_self'][.//div[contains(@class, 'fr-load-more')]]"
+  },
+  "women_bottoms": {
+    "url": "https://www.uniqlo.com/my/en/women/bottoms/bottoms-collections",
+    "product_selector": "article.fr-grid-item.w4",
+    "load_more_xpath": "//a[@href='#' and @target='_self'][.//div[contains(@class, 'fr-load-more')]]"
+  }
+}

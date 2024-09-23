@@ -411,22 +411,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # config = load_config()
-    # driver = setup_driver()
-    # url = "https://www.uniqlo.com/my/en/women/tops/tops-collections"
-    # products = scrape_uniqlo_women_tops(url)
-    # save_to_csv(products, "uniqlo_women_tops.csv")
-    # print(f"Scraped {len(products)} products and saved to uniqlo_women_tops.csv")
-
-    # save_to_json(products, "uniqlo_women_tops.json")
-    # print(f"Scraped {len(products)} products and saved to uniqlo_women_tops.json")
-
-    # # Final sanity checks
-    # assert len(products) > 0, "No products were scraped"
-    # assert all(
-    #     "product_id" in p for p in products
-    # ), "Some products are missing product_id"
-    # assert all("title" in p for p in products), "Some products are missing title"
-    # assert all("image" in p for p in products), "Some products are missing image URL"
-    # print("All sanity checks passed")
     main()
